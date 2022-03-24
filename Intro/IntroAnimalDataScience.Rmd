@@ -1,0 +1,149 @@
+---
+title: "ABG200A Statistics and Data Science"
+author: "Hao Cheng"
+date: "10/7/2020"
+output: html_document
+---
+
+```{r setup1, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Exercise 1: Creative Writing Study
+
+* Experimental Units: writers
+* Treatment: type of questionnaire given at the beginning of the study (questions emphasize either intrinsic or extrinsic rewards)
+* Random assignment: 24 intrinsic, 23 extrinsic
+* Response: average of 12 evaluations of creativity on 40 points scale
+
+```{r}
+intrinsic = c(12.0, 12.0, 12.9, 13.6, 16.6, 17.2,
+              17.5, 18.2, 19.1, 19.3, 19.8, 20.3,
+              20.5, 20.6, 21.3, 21.6, 22.1, 22.2,
+              22.6, 23.1, 24.0, 24.3, 26.7, 29.7)
+extrinsic = c( 5.0,  5.4,  6.1, 10.9, 11.8, 12.0,
+              12.3, 14.8, 15.0, 16.8, 17.2, 17.2,
+              17.4, 17.5, 18.5, 18.7, 18.7, 19.2,
+              19.5, 20.7, 21.2, 22.1, 24.0)
+
+nintrinsic = length(intrinsic)
+boxplot(intrinsic,extrinsic)
+```
+
+### Model-based Inference
+```{r}
+t.test(intrinsic, extrinsic, var.equal = TRUE)
+```
+
+#### model diagnostics
+
+#### homogeneous variances
+```{r}
+var.test(intrinsic,extrinsic)
+```
+
+#### normality (1)
+```{r}
+plot(density(intrinsic))
+plot(density(extrinsic))
+
+library(car)
+qqPlot(intrinsic)
+```
+
+#### normality (2)
+```{r}
+nquantiles = nintrinsic
+quantile1  = 1/nquantiles
+qs         = numeric(nquantiles)
+for (i in 1:nquantiles){
+  qi     = quantile1*i
+  qs[i]  = qnorm(qi)
+}
+plot(qs,intrinsic)
+```
+
+
+### Randomization (design-based inference)
+```{r}
+nsamples   = 10000
+diffs      = numeric(nsamples)
+for (i in 1:nsamples){
+  randi      = sample(c(extrinsic,intrinsic))
+  intrinsici = randi[1:nintrinsic]
+  extrinsici = randi[-(1:nintrinsic)]
+  diffs[i]   = mean(intrinsici) - mean(extrinsici)
+}
+diff_obs = mean(intrinsic) - mean(extrinsic)
+
+hist(diffs,col="gray",las=1,main="")
+abline(v=diff_obs,col="red")
+
+(mean(diffs >= diff_obs))
+```
+
+## Exercise 2: Movie Ratings
+
+|            |movie 1|movie 2|movie 3|
+|:----------:|:-----:|:-----:|:-----:|
+| customer 1 |  4    |   1   |       |
+| customer 1 |       |   3   |   5   |
+| customer 1 |       |       |   3   |
+| customer 1 |  3    |   1   |       |
+
+### Data
+```{r}
+customer= factor(c(1,1,2,2,3,4,4))
+movie   = factor(c(1,2,2,3,3,1,2))
+y       = c(4,1,3,5,3,3,1)
+d       = data.frame(customer,movie,y)
+d
+```
+
+### estimable function (1)
+
+```{r}
+library(MASS)
+
+y = c(4,1,3,5,3,3,1)
+X = matrix(c(
+1,1,0,0,0,1,0,0,
+1,1,0,0,0,0,1,0,
+1,0,1,0,0,0,1,0,
+1,0,1,0,0,0,0,1,
+1,0,0,1,0,0,0,1,
+1,0,0,0,1,1,0,0,
+1,0,0,0,1,0,1,0
+),byrow=T,nrow=7)
+
+bhat=ginv(t(X)%*%X)%*%t(X)%*%y
+
+bhat
+```
+
+### estimable function (2)
+
+```{r}
+o=lm(y~customer+movie,data=d)
+summary(o)
+model.matrix(o)
+coef(o)
+fitted(o)
+resid(o)
+```
+
+### estimable function (3)
+
+```{r}
+o=lm(y~customer+movie+customer*movie,data=d)
+summary(o)
+model.matrix(o)
+coef(o)
+fitted(o)
+```
+
+
+
+
